@@ -1,25 +1,124 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template.rmd"
+author: "Ammar"
+date: "9/5/2020"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## R Markdown
+
+#### Load the data
+
+```{r }
+data <- read.csv("activity.csv")
+```
+
+#### Mean of the total number of steps taken per day
+```{r data}
+step_by_day<- aggregate(steps~date, data,sum)
+hist(step_by_day$steps,main="Total steps each day",col="green", xlab ="Number of steps")
+rmean<- mean(step_by_day$steps)
+rmean
+rmedian<- median(step_by_day$steps)
+rmedian
+```
+The mean of the number of steps per day is `r rmean`.
+The median of the number of steps per day is `r rmedian`.
+
+#### Average daily activity pattern
+
+```{r }
+steps_by_interval<- aggregate(steps~interval, data,mean)
+plot(steps_by_interval$interval,steps_by_interval$steps, type="l", xlab="Interval", ylab="Number of Steps", main="Average Number of per Day by Interval")
+max_interval<- steps_by_interval[which.max(steps_by_interval$steps),1]
+max_interval
+```
+The interval with most steps is `r max_interval`.
+
+#### Imputing missing values
+##### Calculate total number of missing values in the dataset
+
+```{r}
+NATotal<- sum(!complete.cases(data))
+NATotal
+```
+Total number of missing values are `r NATotal`.
+
+##### Using Mean for missing values
+```{r}
+StepsAverage <- aggregate(steps ~ interval, data = data, FUN = mean)
+fillNA <- numeric()
+for (i in 1:nrow(data)) {
+    obs <- data[i, ]
+    if (is.na(obs$steps)) {
+        steps <- subset(StepsAverage, interval == obs$interval)$steps
+    } else {
+        steps <- obs$steps
+    }
+    fillNA <- c(fillNA, steps)
+}
+```
+
+##### Creating a new data set including the imputed values
+```{r}
+new_activity<- data
+new_activity$steps<- fillNA
+```
+
+#### Histogram for total number of steps taken each day after imputing
+
+```{r}
+StepsTotalUnion <- aggregate(steps ~ date, data = new_activity, sum, na.rm = TRUE)
+hist(StepsTotalUnion$steps, main = paste("Total Steps Each Day"), col="blue", xlab="Number of Steps")
+#Create Histogram to show difference. 
+hist(step_by_day$steps, main = paste("Total Steps Each Day"), col="green", xlab="Number of Steps", add=TRUE)
+legend("topright", c("Imputed", "Non-imputed"), col=c("blue", "green"), lwd=10)
+```
+
+
+#### calculate the mean and median
+```{r}
+rmeantotal<- mean(StepsTotalUnion$steps)
+rmeantotal
+rmediantotal<- median(StepsTotalUnion$steps)
+rmediantotal
+```
+
+#### Do this differ from the non imputed value?
+```{r}
+rmeandiff<- rmeantotal- rmean
+rmeandiff
+rmediandiff<- rmediantotal- rmedian
+rmediandiff
+```
+##### The mean is same for both, while median has a small variance.
+
+
+#### If there is difference in activity patterns between weekdays and weekends?
+```{r}
+weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", 
+              "Friday")
+new_activity$dow = as.factor(ifelse(is.element(weekdays(as.Date(new_activity$date)),weekdays), "Weekday", "Weekend"))
+StepsTotalUnion <- aggregate(steps ~ interval + dow, new_activity, mean)
+library(lattice)
+xyplot(StepsTotalUnion$steps ~ StepsTotalUnion$interval|StepsTotalUnion$dow, main="Average Steps per Day by Interval",xlab="Interval", ylab="Steps",layout=c(1,2), type="l")
+```
+
+Created a plot to compare and contrast number of steps between the week and weekend. There is a higher peak earlier on weekdays, and more overall activity on weekends.
 
 
 
-## What is mean total number of steps taken per day?
 
 
 
-## What is the average daily activity pattern?
 
 
 
-## Imputing missing values
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
